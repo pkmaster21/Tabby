@@ -9,6 +9,7 @@ import { groupRoutes } from './routes/groups.js';
 import { memberRoutes } from './routes/members.js';
 import { expenseRoutes } from './routes/expenses.js';
 import { balanceRoutes } from './routes/balances.js';
+import { settleRoutes } from './routes/settle.js';
 import { authRoutes } from './routes/auth.js';
 import { userRoutes } from './routes/user.js';
 
@@ -62,6 +63,7 @@ export async function buildApp() {
   await fastify.register(memberRoutes);
   await fastify.register(expenseRoutes);
   await fastify.register(balanceRoutes);
+  await fastify.register(settleRoutes);
 
   fastify.get('/health', async () => ({ status: 'ok' }));
 

@@ -186,6 +186,28 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
   );
 
+  fastify.delete(
+    '/api/v1/groups/:id',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string' } },
+        },
+        tags: ['groups'],
+        summary: 'Delete a group and all its data (owner only)',
+      },
+      preHandler: [requireSession, requireGroupMember, requireOwner],
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      // CASCADE on foreign keys cleans up members, expenses, splits, activity logs
+      await db.delete(groups).where(eq(groups.id, id));
+      return reply.status(204).send();
+    },
+  );
+
   fastify.get(
     '/api/v1/groups/:id/activity',
     {

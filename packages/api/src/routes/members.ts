@@ -217,4 +217,37 @@ export async function memberRoutes(fastify: FastifyInstance) {
       return reply.status(204).send();
     },
   );
+
+  fastify.post(
+    '/api/v1/groups/:id/leave',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string' } },
+        },
+        tags: ['members'],
+        summary: 'Leave a group (non-owner members only)',
+      },
+      preHandler: [requireSession, requireGroupMember],
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const member = request.member!;
+
+      if (member.role === 'owner') {
+        return reply.status(403).send({ error: 'Group owner cannot leave. Delete the group instead.' });
+      }
+
+      await db.update(members).set({ leftAt: new Date() }).where(eq(members.id, member.id));
+
+      await db.insert(activityLog).values({
+        groupId: id,
+        message: `${member.displayName} left the group`,
+      });
+
+      return reply.status(204).send();
+    },
+  );
 }

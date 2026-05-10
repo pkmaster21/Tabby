@@ -100,11 +100,23 @@ export const api = {
   getBalances: (groupId: string) =>
     request<BalancesResponse>(`/api/v1/groups/${groupId}/balances`),
 
+  settleSettlement: (groupId: string, body: { from: string; to: string; amountCents: number }) =>
+    request<void>(`/api/v1/groups/${groupId}/settle`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   updateGroupSettings: (groupId: string, body: UpdateGroupSettingsRequest) =>
     request<Group>(`/api/v1/groups/${groupId}/settings`, {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
+
+  leaveGroup: (groupId: string) =>
+    request<void>(`/api/v1/groups/${groupId}/leave`, { method: 'POST' }),
+
+  deleteGroup: (groupId: string) =>
+    request<void>(`/api/v1/groups/${groupId}`, { method: 'DELETE' }),
 
   getActivity: (groupId: string) =>
     request<ActivityLogEntry[]>(`/api/v1/groups/${groupId}/activity`),
