@@ -4,6 +4,28 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-stone-50 text-stone-900 antialiased;
+  }
+}
+
+@layer components {
+  /* White card with ring + rounded corners — the shared card vocabulary */
+  .tabby-card {
+    @apply bg-white ring-1 ring-black/[0.06] rounded-2xl;
+  }
+
+  /* 11px bold uppercase section label */
+  .tabby-eyebrow {
+    @apply text-[11px] font-bold uppercase tracking-wider;
+  }
+
+  /* Segmented pill-tab container */
+  .pill-tab-track {
+    @apply bg-stone-100 rounded-xl p-1 flex gap-1;
+  }
+
+  /* Active pill inside the track */
+  .pill-tab-active {
+    @apply bg-orange-500 text-white shadow-sm rounded-lg;
   }
 }

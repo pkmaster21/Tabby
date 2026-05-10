@@ -9,6 +9,8 @@ import CreateGroupPage from './pages/CreateGroupPage.js';
 import JoinPage from './pages/JoinPage.js';
 import DashboardPage from './pages/DashboardPage.js';
 import SettingsPage from './pages/SettingsPage.js';
+import GroupSettingsPage from './pages/GroupSettingsPage.js';
+import AccountPage from './pages/AccountPage.js';
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
             <Route path="/g/:inviteCode" element={<JoinPage />} />
             <Route path="/groups/:id" element={<DashboardPage />} />
             <Route path="/groups/:id/settings" element={<SettingsPage />} />
+            <Route path="/groups/:id/settings/group" element={<GroupSettingsPage />} />
+            <Route path="/groups/:id/settings/account" element={<AccountPage />} />
             <Route path="/create" element={<CreateGroupPage />} />
           </Routes>
         </BrowserRouter>

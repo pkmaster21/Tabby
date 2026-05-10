@@ -1,6 +1,7 @@
 interface AvatarProps {
   name: string;
-  size?: 'sm' | 'md' | 'lg';
+  /** Named size token or explicit pixel size (e.g. 22, 36, 56) */
+  size?: 'sm' | 'md' | 'lg' | number;
 }
 
 // Warm color pool — no cool blues or grays
@@ -16,7 +17,7 @@ const colors = [
   'bg-indigo-400',
 ];
 
-const sizeClasses = {
+const namedSizeClasses: Record<string, string> = {
   sm: 'w-7 h-7 text-xs',
   md: 'w-9 h-9 text-sm',
   lg: 'w-12 h-12 text-base',
@@ -28,6 +29,14 @@ function colorForName(name: string): string {
   return colors[Math.abs(hash) % colors.length]!;
 }
 
+function textClassForPx(px: number): string {
+  if (px <= 22) return 'text-[9px]';
+  if (px <= 28) return 'text-[10px]';
+  if (px <= 36) return 'text-xs';
+  if (px <= 48) return 'text-sm';
+  return 'text-base';
+}
+
 export function Avatar({ name, size = 'md' }: AvatarProps) {
   const initials = name
     .split(' ')
@@ -37,9 +46,14 @@ export function Avatar({ name, size = 'md' }: AvatarProps) {
     .join('')
     .toUpperCase();
 
+  const isNumeric = typeof size === 'number';
+  const sizeClass = isNumeric ? textClassForPx(size) : namedSizeClasses[size];
+  const sizeStyle = isNumeric ? { width: size, height: size } : undefined;
+
   return (
     <div
-      className={`${sizeClasses[size]} ${colorForName(name)} rounded-full flex items-center justify-center text-white font-semibold select-none shrink-0`}
+      className={`${sizeClass} ${colorForName(name)} rounded-full flex items-center justify-center text-white font-semibold select-none shrink-0`}
+      style={sizeStyle}
       aria-label={name}
     >
       {initials}

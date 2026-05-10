@@ -1,250 +1,121 @@
-import { useState, useEffect, FormEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Member, ActivityLogEntry, UpdateGroupSettingsRequest } from '@tabby/shared';
-import { api, ApiError } from '../lib/api.js';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api.js';
 import { queryKeys } from '../lib/queryKeys.js';
-import { Button } from '../components/Button.js';
-import { Input } from '../components/Input.js';
-import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { TabbyLogo } from '../components/TabbyLogo.js';
+import { DesktopRail } from '../components/DesktopRail.js';
 import { appPageStyle } from '../components/CatBackground.js';
+import { useAuth } from '../lib/auth.js';
+
+function ChevronRight() {
+  return (
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />
+    </svg>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
 
 export default function SettingsPage() {
   const { id } = useParams<{ id: string }>();
-  const queryClient = useQueryClient();
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
-  const [pendingRemoveMemberId, setPendingRemoveMemberId] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const groupQuery = useQuery({
     queryKey: queryKeys.group(id!),
     queryFn: () => api.getGroup(id!),
   });
 
-  const membersQuery = useQuery({
-    queryKey: queryKeys.members(id!),
-    queryFn: () => api.getMembers(id!),
-  });
+  const groupName = groupQuery.data?.name ?? '';
 
-  const activityQuery = useQuery({
-    queryKey: queryKeys.activity(id!),
-    queryFn: () => api.getActivity(id!),
-  });
-
-  const currentMemberQuery = useQuery({
-    queryKey: queryKeys.currentMember(id!),
-    queryFn: () => api.getCurrentMember(id!),
-  });
-
-  const members: Member[] = membersQuery.data ?? [];
-  const activityLog: ActivityLogEntry[] = activityQuery.data ?? [];
-  const currentMember: Member | null = currentMemberQuery.data ?? null;
-
-  const [name, setName] = useState('');
-  useEffect(() => {
-    if (groupQuery.data?.name && !name) setName(groupQuery.data.name);
-  }, [groupQuery.data?.name, name]);
-
-  const inviteCode = groupQuery.data?.inviteCode ?? '';
-  const inviteUrl = inviteCode ? `${window.location.origin}/g/${inviteCode}` : '';
-
-  const updateSettingsMutation = useMutation({
-    mutationFn: (body: UpdateGroupSettingsRequest) => api.updateGroupSettings(id!, body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.group(id!) });
+  const rows = [
+    {
+      key: 'account',
+      to: `/groups/${id}/settings/account`,
+      icon: <UserIcon />,
+      label: 'Account',
+      description: user ? user.name : 'Guest · not synced',
     },
-  });
-
-  const removeMemberMutation = useMutation({
-    mutationFn: (memberId: string) => api.removeMember(id!, memberId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.members(id!) });
+    {
+      key: 'group',
+      to: `/groups/${id}/settings/group`,
+      icon: <GearIcon />,
+      label: 'Group settings',
+      description: groupName,
     },
-  });
-
-  const handleCopy = async () => {
-    if (!inviteUrl) return;
-    await navigator.clipboard.writeText(inviteUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleSaveName = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-    try {
-      await updateSettingsMutation.mutateAsync({ name });
-      setSuccess('Group name updated');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to update');
-    }
-  };
-
-  const handleRegenerateLink = async () => {
-    setError('');
-    try {
-      await updateSettingsMutation.mutateAsync({ regenerateInviteCode: true });
-      setSuccess('Invite link regenerated');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to regenerate');
-    } finally {
-      setShowRegenerateConfirm(false);
-    }
-  };
-
-  const handleRemoveMember = async () => {
-    if (!pendingRemoveMemberId) return;
-    try {
-      await removeMemberMutation.mutateAsync(pendingRemoveMemberId);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to remove member');
-    } finally {
-      setPendingRemoveMemberId(null);
-    }
-  };
-
-  const isOwner = currentMember?.role === 'owner';
+  ] as const;
 
   return (
-    <div className="min-h-screen" style={appPageStyle}>
-      <header className="bg-white border-b border-stone-100 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link to="/" className="hover:opacity-80 transition-opacity">
-            <TabbyLogo size={24} />
-          </Link>
-          <Link to={`/groups/${id}`} className="text-sm text-orange-500 hover:text-orange-600 font-medium">
-            ← Back
-          </Link>
-          <h1 className="text-base font-semibold text-stone-900">Settings</h1>
-        </div>
-      </header>
+    <div className="min-h-screen lg:flex lg:h-screen lg:overflow-hidden" style={appPageStyle}>
+      <DesktopRail activeGroupId={id} />
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {success && <p className="text-sm text-green-600">{success}</p>}
+      <div className="flex-1 min-w-0 lg:flex lg:flex-col lg:overflow-hidden">
+        <header className="bg-white border-b border-stone-100 sticky top-0 z-10 lg:static lg:shrink-0">
+          <div className="max-w-2xl mx-auto px-2 py-3 flex items-center gap-1 lg:max-w-none lg:px-6 lg:py-5">
+            <Link to={`/groups/${id}`} className="lg:hidden">
+              <button className="w-9 h-9 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-700 transition-colors" aria-label="Back">
+                <BackIcon />
+              </button>
+            </Link>
+            <div className="flex items-center gap-2.5 px-1 lg:px-0 lg:block">
+              <span className="lg:hidden"><TabbyLogo size={22} /></span>
+              <h1 className="text-[15px] font-semibold text-stone-900 lg:text-[22px] lg:font-bold lg:tracking-tight">Settings</h1>
+            </div>
+          </div>
+        </header>
 
-        {isOwner && (
-          <section className="bg-white rounded-2xl p-5 ring-1 ring-black/[0.06] space-y-4">
-            <h2 className="font-semibold text-stone-900">Group name</h2>
-            <form onSubmit={handleSaveName} className="flex gap-3">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Group name"
-                className="flex-1"
-                maxLength={100}
-                required
-                aria-label="Group name"
-              />
-              <Button type="submit" loading={updateSettingsMutation.isPending}>Save</Button>
-            </form>
-          </section>
-        )}
-
-        <section className="bg-white rounded-2xl p-5 ring-1 ring-black/[0.06] space-y-3">
-          <h2 className="font-semibold text-stone-900">Invite link</h2>
-          {inviteUrl ? (
-            <>
-              <div className="flex gap-2">
-                <input
-                  readOnly
-                  value={inviteUrl}
-                  className="flex-1 rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm bg-stone-50 text-stone-500"
-                  aria-label="Invite link"
-                />
-                <Button variant="secondary" onClick={handleCopy}>
-                  {copied ? 'Copied!' : 'Copy'}
-                </Button>
-              </div>
-              {isOwner && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowRegenerateConfirm(true)}
-                  loading={updateSettingsMutation.isPending}
-                  className="text-stone-400"
+        <div className="lg:flex-1 lg:overflow-y-auto">
+          <main className="max-w-2xl mx-auto px-4 pt-5 pb-8 lg:max-w-[760px] lg:px-8 lg:py-7">
+            <section className="tabby-card overflow-hidden">
+              {rows.map(({ key, to, icon, label, description }, i) => (
+                <Link
+                  key={key}
+                  to={to}
+                  className={`flex items-center gap-3 px-4 py-3.5 hover:bg-stone-50 transition-colors ${
+                    i < rows.length - 1 ? 'border-b border-stone-100' : ''
+                  }`}
                 >
-                  Regenerate link
-                </Button>
-              )}
-            </>
-          ) : (
-            <p className="text-sm text-stone-400">Loading invite link…</p>
-          )}
-        </section>
-
-        {isOwner && (
-          <section className="bg-white rounded-2xl p-5 ring-1 ring-black/[0.06] space-y-3">
-            <h2 className="font-semibold text-stone-900">Members</h2>
-            <div className="space-y-2">
-              {members.map((m) => (
-                <div key={m.id} className="flex items-center justify-between py-1">
-                  <span className="text-sm text-stone-700">
-                    {m.displayName}{' '}
-                    <span className="text-stone-400 capitalize">({m.role})</span>
+                  <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center text-stone-500 shrink-0">
+                    {icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-stone-900">{label}</p>
+                    {description && (
+                      <p className="text-xs text-stone-500 truncate mt-0.5">{description}</p>
+                    )}
+                  </div>
+                  <span className="text-stone-300 shrink-0">
+                    <ChevronRight />
                   </span>
-                  {m.id !== currentMember?.id && m.role !== 'owner' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setPendingRemoveMemberId(m.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
+                </Link>
               ))}
-            </div>
-          </section>
-        )}
-
-        {activityLog.length > 0 && (
-          <section className="bg-white rounded-2xl p-5 ring-1 ring-black/[0.06] space-y-3">
-            <h2 className="font-semibold text-stone-900">Activity</h2>
-            <div className="space-y-3">
-              {activityLog.map((entry) => (
-                <div key={entry.id} className="flex items-start gap-3">
-                  <span className="text-xs text-stone-400 shrink-0 mt-0.5">
-                    {new Date(entry.createdAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </span>
-                  <span className="text-sm text-stone-600">{entry.message}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-      </main>
-
-      <ConfirmDialog
-        open={showRegenerateConfirm}
-        onClose={() => setShowRegenerateConfirm(false)}
-        onConfirm={handleRegenerateLink}
-        title="Regenerate invite link"
-        message="The current invite link will stop working. Anyone with the old link won't be able to join."
-        confirmLabel="Regenerate"
-        variant="danger"
-        loading={updateSettingsMutation.isPending}
-      />
-
-      <ConfirmDialog
-        open={!!pendingRemoveMemberId}
-        onClose={() => setPendingRemoveMemberId(null)}
-        onConfirm={handleRemoveMember}
-        title="Remove member"
-        message="Are you sure you want to remove this member from the group?"
-        confirmLabel="Remove"
-        variant="danger"
-        loading={removeMemberMutation.isPending}
-      />
+            </section>
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
