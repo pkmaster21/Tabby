@@ -490,7 +490,7 @@ export default function DashboardPage() {
             settlements={balances.settlements}
             currentMemberId={currentMember.id}
             memberNames={memberNames}
-            onPrimary={() => {/* settle/remind flow — step 3 */}}
+            onPrimary={() => setActiveTab('who-owes-who')}
           />
         )}
 
