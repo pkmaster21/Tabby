@@ -292,7 +292,7 @@ export default function GroupSettingsPage() {
               </div>
               {m.role === 'owner' && (
                 <span className="text-[10px] font-bold uppercase tracking-wider text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full shrink-0">
-                  Admin
+                  Owner
                 </span>
               )}
               {isOwner && m.id !== currentMember?.id && m.role !== 'owner' && (
@@ -449,7 +449,7 @@ export default function GroupSettingsPage() {
                     </div>
                     {m.role === 'owner' && (
                       <span className="text-[10px] font-bold uppercase tracking-wider text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full shrink-0">
-                        Admin
+                        Owner
                       </span>
                     )}
                     {isOwner && m.id !== currentMember?.id && m.role !== 'owner' && (
